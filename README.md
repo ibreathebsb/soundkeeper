@@ -2,225 +2,244 @@
 
 [![Build](https://github.com/ibreathebsb/soundkeeper/actions/workflows/build.yml/badge.svg)](https://github.com/ibreathebsb/soundkeeper/actions/workflows/build.yml)
 
-防止音频输出设备“睡着”的菜单栏小工具：蓝牙音箱、HDMI / DisplayPort / 光纤功放、USB DAC、带自动待机的有源音箱等。
-它是 Windows 上 [Sound Keeper](https://github.com/vrubleg/soundkeeper)（作者 Evgeny Vrublevsky）v1.3.7 的 macOS 移植版。
+**English** | [简体中文](README.zh-CN.md)
 
-这类设备在一段时间没有声音后会自动休眠或断开音频链路，下一次出声时要花零点几秒到几秒“醒来”，
-于是提示音被吞掉、每首歌的开头被切掉，有的设备干脆自动关机。Sound Keeper 的办法很简单：
-**一直向设备播放一路听不见的音频流**，让它始终认为“正在播放”。
+A menu bar app that keeps audio outputs from falling asleep: Bluetooth speakers, HDMI / DisplayPort / optical receivers,
+USB DACs, active monitors with auto standby.
 
-## 构建与安装
+Such devices go to sleep or drop the audio link after a while without sound. When the next sound starts, it takes them
+from a fraction of a second to several seconds to wake up, so notification sounds are swallowed, the beginning of every
+track is cut off, and some devices just power themselves off. Sound Keeper has a simple cure:
+**it always plays an inaudible stream to the device**, so the device believes that something is playing.
 
-需要 macOS 12 或更新版本，以及 Command Line Tools（`xcode-select --install`）。不需要 Xcode。
+## Build and install
+
+Requires macOS 12 or later and Command Line Tools (`xcode-select --install`). Xcode is not needed.
 
 ```sh
-make app        # 生成 build/SoundKeeper.app（菜单栏 App）和 build/soundkeeper（命令行工具）
-make run        # 构建并启动 App
-make install    # 构建、复制到 /Applications 并从那里启动
-make test       # 运行测试
-make uninstall  # 删除 App、登录项和它的全部文件
+make app        # build/SoundKeeper.app (the menu bar app) and build/soundkeeper (the command line tool)
+make run        # build and start the app
+make install    # build, copy to /Applications and start it from there
+make test       # run the tests
+make uninstall  # remove the app, its login item and all its files
 ```
 
-App 是在本机构建、仅作本机使用的，采用 ad-hoc 签名，不会被 Gatekeeper 拦截。
+The app is built on your Mac for your Mac. It has an ad-hoc signature, and Gatekeeper doesn't block it.
 
 ### GitHub Actions
 
-`.github/workflows/build.yml` 会在每次推送到 `main`、每个 Pull Request 以及手动触发时，在 GitHub 的 macOS 运行器上跑测试并构建。
-产物是一个 zip（`SoundKeeper.app` + 命令行工具），在那次运行页面底部的 Artifacts 里下载。
+`.github/workflows/build.yml` tests and builds the project on a macOS runner of GitHub on every push to `main`,
+on every pull request, and when it is started manually. The result is a zip with `SoundKeeper.app` and the command line
+tool. Download it from Artifacts at the bottom of the page of a run.
 
-CI 构建的 App 同样只有 ad-hoc 签名，而从浏览器下载的文件带有隔离标记，所以首次运行前需要去掉它：
+An app built by CI has an ad-hoc signature too, and files downloaded by a browser are quarantined.
+Remove the quarantine before the first start:
 
 ```sh
 xattr -dr com.apple.quarantine SoundKeeper.app
 ```
 
-## 菜单栏 App
+## The menu bar app
 
-启动后没有窗口、没有 Dock 图标，只在菜单栏右侧多一个喇叭图标：
+There are no windows and no Dock icon, just a speaker icon on the right side of the menu bar:
 
-| 图标 | 含义 |
+| Icon | Meaning |
 | --- | --- |
-| 喇叭 + 声波 | 正在给至少一个输出设备保活 |
-| 喇叭 | 已开启，但当前没有可保活的设备（或因显示器关闭 / 锁屏而暂停） |
-| 喇叭 + 斜线 | 已被你关闭 |
-| 喇叭 + 感叹号 | 某个设备无法启动保活流，正在重试 |
+| Speaker with waves | At least one output is being kept awake |
+| Speaker | Turned on, but there is nothing to keep awake right now (or it is paused because displays are off or the screen is locked) |
+| Speaker with a slash | Turned off by you |
+| Speaker with an exclamation mark | A stream to some output can't be started; Sound Keeper keeps retrying |
 
-点开菜单：
+The menu:
 
-- **最上方**：当前正在保活哪些设备（绿点 = 正常，黄点 = 设备被其他应用独占、等待中，红点 = 启动失败、重试中）。
-  鼠标悬停可以看到采样率、声道数等细节。
-- **Keep Outputs Awake**：总开关。
-- **Outputs**（给哪些设备保活）
-  - *Default Output*：系统当前的默认输出设备，切换输出时自动跟随。默认选项。
-  - *All / Digital / Analog Outputs*：所有硬件输出 / 仅 HDMI、DisplayPort、S/PDIF / 除此之外的。
-  - *Only Selected*：只给勾选的设备保活。设备断开后仍然保持勾选，重新连接后自动恢复。
-  - *Include AirPlay Outputs*：默认忽略 AirPlay（保活意味着一直通过网络推流）。
-- **Signal**（播放什么信号，见下一节）
+- **At the top**: outputs that are being kept awake right now. A green dot means that everything is fine. A yellow one
+  means that the device is used exclusively by another app, and Sound Keeper waits. A red one means that the stream
+  can't be started, and Sound Keeper keeps retrying. Hover over a line to see the sample rate, the number of channels,
+  and other details.
+- **Keep Outputs Awake**: the main switch.
+- **Outputs**: which outputs are kept awake.
+  - *Default Output*: the output that is selected in Sound settings. It is followed when you switch outputs. Used by default.
+  - *All / Digital / Analog Outputs*: all hardware outputs / HDMI, DisplayPort and S/PDIF only / everything else.
+  - *Only Selected*: only the outputs you check. A device stays checked when it is disconnected, and it is kept awake
+    again as soon as it comes back.
+  - *Include AirPlay Outputs*: AirPlay is ignored by default, since keeping it awake means streaming over the network all the time.
+- **Signal**: what is played, see the next section.
 - **Sleep**
-  - 默认情况下 **Mac 仍然可以正常自动睡眠**，Sound Keeper 不会像普通播放器那样让电脑一直醒着。
-  - *Keep the Mac Awake*：反过来，像普通播放器一样阻止 Mac 自动睡眠。
-  - *Pause While Displays Are Off / Screen Is Locked*：显示器关闭或锁屏时暂停保活，人不在时让音箱自己去休眠。
-- **Start at Login**：登录时自动启动（建议先 `make install` 把 App 放进 /Applications 再勾选）。
+  - By default **the Mac is still free to go to sleep** on its own. Sound Keeper doesn't keep it awake like a usual audio player does.
+  - *Keep the Mac Awake*: the opposite. The Mac doesn't go to sleep automatically while Sound Keeper is playing.
+  - *Pause While Displays Are Off / the Screen Is Locked*: be silent while you are away, so your speakers can fall asleep.
+- **Start at Login**: start Sound Keeper when you log in. Put the app into /Applications first (`make install`).
 
-系统语言为简体中文时界面显示中文，否则显示英文。
+The interface is available in English and Simplified Chinese. It follows the language of the system.
 
-## 信号类型怎么选
+## Choosing a signal
 
-| 类型 | 说明 | 适用 |
+| Type | What it is | Good for |
 | --- | --- | --- |
-| Fluctuate（默认） | 全零数据流，每秒 50 次插入一个幅度最小的非零采样（24 位下的 ±1 LSB，约 −138 dBFS）。完全听不见，但数据不是“纯静音”。 | 数字输出（HDMI / 光纤 / USB DAC）的首选 |
-| Zero | 全零数据流。 | 只要链路不断就不休眠的设备 |
-| Open Only | 只让硬件保持运行，本进程不产生任何数据。最省电。 | 同上，“有时就够了” |
-| Sine | 正弦波，默认 1 Hz、1% 幅度；频率和幅度可调。低频听不见，却是真实存在的信号。 | 靠“检测有没有信号”来决定待机的设备：有源音箱、部分蓝牙音箱 |
-| White / Brown / Pink Noise | 白 / 布朗 / 粉红噪声，默认 1% 幅度。0.1% 基本听不见。 | 同上，Sine 无效时再试 |
+| Fluctuate (default) | A stream of zeroes with the smallest non-zero sample inserted 50 times a second (±1 LSB of 24-bit audio, about −138 dBFS). It is inaudible, but it is not pure digital silence. | The first choice for digital outputs: HDMI, optical, USB DACs |
+| Zero | A stream of zeroes. | Devices that stay awake as long as the audio link is up |
+| Open Only | Only keeps the hardware running. The process doesn't render anything, so it takes the least power. | The same. Sometimes it is enough |
+| Sine | A sine wave, 1 Hz at 1% by default. Frequency and amplitude can be changed. A low frequency is inaudible, but it is a real signal. | Devices that fall asleep when they detect no signal: active monitors, some Bluetooth speakers |
+| White / Brown / Pink Noise | Noise, at 1% by default. 0.1% is practically inaudible. | The same, when Sine doesn't help |
 
-可调参数（菜单里有预设，也可以在 *More Parameters…* 里直接填）：
+Parameters (the menu has presets; exact values can be typed in *More Parameters…*):
 
-- **Frequency**：Fluctuate 是每秒“微扰”的次数（默认 50），Sine 是频率（默认 1 Hz）。
-- **Amplitude**：Sine 和噪声的幅度，单位 %（默认 1）。
-- **Length / Waiting**：每次响多久、两次之间停多久（秒）。只设 Length 不设 Waiting 等于一直响。
-- **Fading**：淡入淡出时间（默认 0.1 秒）。
+- **Frequency**: the number of fluctuations per second for Fluctuate (50 by default), the frequency of the tone for Sine (1 Hz by default).
+- **Amplitude**: for Sine and noise, in percent (1 by default).
+- **Length / Waiting**: how long a sound lasts, and how long the pause between sounds is, in seconds.
+  A length without waiting is the same as playing all the time.
+- **Fading**: fade-in and fade-out time (0.1 seconds by default).
 
-**建议的尝试顺序**：先用默认的 Fluctuate；如果设备过一阵仍然休眠或关机，换成 Sine（例如 10 Hz、5%，听不见）；
-还不行再试 Brown Noise 0.1%。想确认声音确实送到了设备，可以临时选 Sine 1000 Hz —— 这个能听见，仅用于测试。
+**What to try, in this order**: start with the default Fluctuate. If the device still falls asleep or powers off after
+a while, switch to Sine (10 Hz at 5% is inaudible). If that doesn't help either, try Brown Noise at 0.1%.
+To make sure that the sound really reaches the device, choose Sine at 1000 Hz for a moment: it is audible, so use it for testing only.
 
-> **蓝牙音箱**：蓝牙是有损编码（SBC / AAC），Fluctuate 那种 ±1 LSB 的信号在编码后等同于静音，
-> 所以它在蓝牙上的效果和 Zero 一样 —— 靠的是“音频链路一直开着”。多数蓝牙音箱这样就不会休眠了；
-> 如果你的音箱是按“有没有声音”来计时关机的，请改用 Sine 或噪声。
+> **Bluetooth speakers**: Bluetooth audio is lossy (SBC / AAC), and the ±1 LSB signal of Fluctuate turns into silence
+> after encoding. So on Bluetooth it works exactly like Zero: what keeps the speaker awake is the audio link that stays open.
+> It is enough for most speakers. If yours powers off by measuring how long it has been silent, use Sine or noise.
 
-## 命令行工具
+## Command line tool
 
-`build/soundkeeper` 是不带界面的版本，行为和 Windows 原版一样：启动即工作，参数名不区分大小写。
-它和菜单栏 App 共用同一把“单实例锁”：新启动的实例会自动让旧实例退出，所以两者不会同时运行。
+`build/soundkeeper` is Sound Keeper without any user interface. It starts to do its job right after it is started.
+Setting names are case insensitive.
+It shares the single instance lock with the menu bar app: a newly started instance makes the previous one quit,
+so they never run at the same time.
 
 ```
-soundkeeper [设置]              前台运行，直到被停止
-soundkeeper install [设置]      立即启动，并在每次登录时启动（launchd 用户代理）
-soundkeeper uninstall           停止并移除登录项
-soundkeeper kill                停止正在运行的实例（包括菜单栏 App）
-soundkeeper status              查看谁在运行、在给哪些设备保活
-soundkeeper list [设置]         列出所有输出设备，以及这组设置会给哪些设备保活
+soundkeeper [settings]             Run until it is stopped
+soundkeeper install [settings]     Start now and at every login (a per-user launchd agent)
+soundkeeper uninstall              Stop and remove the login item
+soundkeeper kill                   Stop the running instance (the menu bar app too)
+soundkeeper status                 Show what is running and which outputs are kept awake
+soundkeeper list [settings]        List outputs and show which of them the settings keep awake
 ```
 
-设置（与原版相同的写法都支持，如 `sine -f 1000 -a 15` 或 `SineF1000A15`）：
+Settings can be separate arguments or be glued together: `sine -f 1000 -a 15` and `SineF1000A15` are the same.
 
-| 类别 | 参数 |
+| Kind | Settings |
 | --- | --- |
-| 设备 | `primary`（默认）、`all`、`digital`、`analog`、`marked`（名称里带 `!` 的设备）、`-d 名称`（名称包含该文字或 UID 相同，可重复）、`remote`（不忽略 AirPlay） |
-| 信号 | `openonly`、`zero`、`fluctuate`（默认）、`sine`、`white`、`brown`、`pink` |
-| 信号参数 | `-f` 频率 Hz、`-a` 幅度 %、`-l` 时长秒、`-w` 间隔秒、`-t` 淡入淡出秒 |
-| 休眠 | `sleepd`（显示器关闭时暂停）、`sleepl`（锁屏时暂停）、`sleepld` / `sleepy`（两者）、`nosleep`（阻止 Mac 睡眠） |
-| 其他 | `-v` 输出详细日志 |
+| Outputs | `primary` (default), `all`, `digital`, `analog`, `marked` (outputs with `!` in their name), `-d NAME` (the name contains NAME, or the UID is NAME; can be repeated), `remote` (don't ignore AirPlay) |
+| Signal | `openonly`, `zero`, `fluctuate` (default), `sine`, `white`, `brown`, `pink` |
+| Signal parameters | `-f` frequency in Hz, `-a` amplitude in %, `-l` length in seconds, `-w` waiting in seconds, `-t` fading in seconds |
+| Sleep | `sleepd` (pause while displays are off), `sleepl` (pause while the screen is locked), `sleepld` or `sleepy` (both), `nosleep` (keep the Mac awake) |
+| Other | `-v` prints what is going on |
 
 ```sh
-soundkeeper                          # 默认输出设备，听不见的 Fluctuate
-soundkeeper all zero                 # 所有输出设备，全零
-soundkeeper sine -f 10 -a 5          # 10 Hz、5% 的正弦波，听不见
-soundkeeper sine -f 1000 -a 15       # 1000 Hz、15%，能听见！仅用于测试
-soundkeeper brown -a 0.1             # 0.1% 的布朗噪声
-soundkeeper install -d JBL sine      # 只给名字里带 JBL 的设备保活，并开机自启
+soundkeeper                          # the default output, inaudible Fluctuate
+soundkeeper all zero                 # a stream of zeroes on all outputs
+soundkeeper sine -f 10 -a 5          # a 10 Hz sine wave at 5%, inaudible
+soundkeeper sine -f 1000 -a 15       # 1000 Hz at 15%, audible! For testing only
+soundkeeper brown -a 0.1             # brown noise at 0.1%
+soundkeeper install -d JBL sine      # keep outputs named like "JBL" awake, starting at login
 ```
 
-和原版一样，设置也可以写在可执行文件名里（`SoundKeeperSineF10A5`）。与原版不同的是，命令行里写错的参数会报错，而不是被悄悄忽略。
+Settings can also be a part of the name of the executable file (`SoundKeeperSineF10A5`).
+Unknown command line arguments are reported as errors.
 
-## 工作原理
+## How it works
 
-### Windows 原版
+CoreAudio has a simple rule: **as long as at least one IOProc is running on a device, the HAL keeps its hardware working.
+The moment the last IOProc is stopped, the hardware is stopped too** (`kAudioDevicePropertyDeviceIsRunningSomewhere`
+goes from 1 to 0). That is the moment when the Bluetooth A2DP link, the audio data of HDMI, or the isochronous stream
+of USB goes away, and the device starts counting the time until it falls asleep.
 
-用 WASAPI 在目标设备上打开一路共享模式的渲染流，申请 1 秒的缓冲区，每 750 毫秒醒来一次把缓冲区填满；
-内容是全零，或每隔一段时间插入一个最小非零采样（Fluctuate），或正弦波 / 噪声。
-只要这路流在播放，Windows 的音频引擎就不会停掉设备，S/PDIF、HDMI 链路上就一直有数据。
-其余代码都在处理“意外”：默认设备变化、设备插拔、格式变化、其他程序独占设备、系统睡眠与唤醒、单实例。
+So Sound Keeper registers an IOProc on every device that has to be kept awake (`AudioDeviceCreateIOProcID` and
+`AudioDeviceStart`) and never stops it. The IOProc is called by the real-time thread of the HAL and writes the keep-alive
+signal into the output buffers. *Open Only* is `AudioDeviceStart(device, NULL)`: the hardware is started without any IOProc.
 
-### macOS 版
+Everything else is about things that happen around it:
 
-CoreAudio 的规则是：**设备上只要有一个 IOProc 在运行，HAL 就让硬件保持工作；最后一个 IOProc 停止的瞬间，硬件就停了**
-（`kAudioDevicePropertyDeviceIsRunningSomewhere` 从 1 变 0）。蓝牙的 A2DP 链路、HDMI 的音频数据、USB 的等时传输都是在这一刻断掉的。
-所以 macOS 版做的事是：在每个需要保活的设备上注册一个 IOProc 并一直运行，由它向输出缓冲区写入保活信号。
-
-| Windows 原版 | macOS 版 |
+| What happens | What Sound Keeper does |
 | --- | --- |
-| WASAPI 共享模式渲染流，定时填充 1 秒缓冲区 | HAL IOProc（`AudioDeviceCreateIOProcID` + `AudioDeviceStart`），由 HAL 的实时线程回调 |
-| OpenOnly：打开设备但不写数据 | `AudioDeviceStart(device, NULL)`：只启动硬件，不注册 IOProc |
-| 混音格式固定为 32 位浮点 | 流的虚拟格式固定为 32 位浮点；若不是（被切到编码格式），只写零 |
-| `IMMNotificationClient` 监听设备变化 | 监听 `kAudioHardwarePropertyDevices`、`DefaultOutputDevice`、`ServiceRestarted` |
-| 会话断开事件（格式变化） | 监听采样率、流格式、流配置变化，先让发生器静音，确认格式变了再重启 |
-| WASAPI / ASIO 独占模式：等待独占结束 | Hog 模式：监听 `kAudioDevicePropertyHogMode`，等待释放 |
-| “播放音频会阻止 Windows 11 自动睡眠”是已知问题，只能在锁屏 / 关屏时停播 | 设置 `kAudioHardwarePropertySleepingIsAllowed = 1`，coreaudiod 不再为本进程持有 `PreventUserIdleSystemSleep`，Mac 照常睡眠 |
-| 挂起 / 恢复、显示器、锁屏通知 | `NSWorkspace` 的睡眠 / 唤醒、屏幕睡眠 / 唤醒、会话切换通知；锁屏用 `com.apple.screenIsLocked` 分布式通知 |
-| 具名互斥量 + 具名事件实现单实例与 `kill` | 文件上的 POSIX 锁 + `SIGTERM`（`F_GETLK` 直接给出持锁进程的 PID） |
-| 放进“启动”文件夹自启 | 用户级 launchd 代理（`~/Library/LaunchAgents/local.soundkeeper.plist`） |
-| 忽略远程桌面音频设备（`Remote` 开关） | 忽略 AirPlay 设备（`remote` 开关） |
+| The default output is changed, a device is connected or disconnected | It listens for `kAudioHardwarePropertyDefaultOutputDevice` and `kAudioHardwarePropertyDevices` and reconciles: streams are started for devices that are wanted now and stopped for those that are not. Streams of devices that are still wanted are not interrupted |
+| The sample rate or the format of a device is changed | The generator is silenced at once, and the stream is restarted if the format is really different |
+| Another app takes a device for exclusive use (hog mode) | It stops and waits until the device is released (`kAudioDevicePropertyHogMode`) |
+| A stream stops for no known reason | A watchdog looks at the number of rendered buffers every 10 seconds and restarts a stalled stream |
+| The Mac goes to sleep and wakes up, another user takes the screen | It stops before that and starts again after it (`NSWorkspace` notifications) |
+| Displays go to sleep, the screen is locked | It pauses, if it is turned on in settings |
+| The audio server (coreaudiod) is restarted | Everything is built again from scratch (`kAudioHardwarePropertyServiceRestarted`) |
+| Sound Keeper is started once more | The new instance stops the old one: a POSIX lock on a file tells who is running, and `SIGTERM` asks it to quit |
+| You log in | A per-user launchd agent starts it (`~/Library/LaunchAgents/local.soundkeeper.plist`) |
 
-几个 macOS 上特有的细节：
+Some details:
 
-- **不阻止睡眠**。默认情况下任何在播放音频的进程都会让 coreaudiod 持有一个阻止空闲睡眠的电源断言，
-  这正是原版在 Windows 11 上的“已知问题”。macOS 提供了按进程关闭它的属性，所以这里默认就是“保活但不妨碍睡眠”。
-  可以用 `pmset -g assertions | grep audio` 自行验证：Sound Keeper 运行时不会出现 `Created for PID: <它的 PID>`。
-- **尽量少唤醒 CPU**。IO 缓冲区大小在 macOS 上是“每进程”的设置，不影响别的应用。Sound Keeper 把自己的缓冲区调到设备允许的最大值
-  （内置扬声器 4096 帧 ≈ 每秒回调 12 次，蓝牙 1024 帧 ≈ 每秒 43 次），Fluctuate 的实现是“清零 + 写几个采样”。
-  实测同时给两个设备保活，30 秒只用掉约 0.03 秒 CPU 时间。
-- **实时线程里只有 C**。IOProc 和信号发生器在一个独立的 C 模块里（`Sources/CSoundKeeperRender`），
-  渲染路径上没有内存分配、没有锁、没有 Swift 运行时。缓冲区的声道数、大小与启动时不一致时一律写零，
-  避免把浮点数据写进别的格式的流里变成巨响。
-- **只动需要动的设备**。设备列表变化时做的是“对账”而不是全部重启：仍然需要保活的设备，它的流不会被打断。
-- **自愈**。每 10 秒检查一次回调计数；流停了（且不是因为被独占）就重启它。coreaudiod 重启后全部重建。
-- **不碰麦克风**。对带输入的设备（USB 耳机、声卡），通过 `kAudioDevicePropertyIOProcStreamUsage` 声明不使用输入流，
-  目的是不连带启动录音、不触发麦克风指示和权限请求。（开发机上没有同时带输入和输出的设备，这条路径尚未实测。）
+- **It doesn't keep the Mac awake.** By default, coreaudiod holds a power assertion (`PreventUserIdleSystemSleep`)
+  on behalf of any process that plays audio, so an endless stream would never let the Mac go to sleep on its own.
+  Sound Keeper sets `kAudioHardwarePropertySleepingIsAllowed` for its process, and the assertion is not created.
+  You can check it: while Sound Keeper is running, `pmset -g assertions | grep audio` doesn't show
+  `Created for PID: <PID of Sound Keeper>`.
+- **It wakes the CPU up as rarely as possible.** The size of the IO buffer is a per-process setting in macOS, it doesn't
+  affect other apps. Sound Keeper sets its buffers to the biggest size a device allows (4096 frames for built-in speakers,
+  which is about 12 callbacks a second; 1024 frames for Bluetooth, about 43 a second), and Fluctuate is rendered as
+  "clear the buffer and set a few samples". Keeping two devices awake for 30 seconds takes about 0.03 seconds of CPU time.
+- **There is only C on the real-time thread.** The IOProc and the signal generator are a separate C module
+  (`Sources/CSoundKeeperRender`): no memory allocation, no locks and no Swift runtime on the render path.
+  When the number of channels or the size of a buffer is not what it was when the stream was started, zeroes are written:
+  float samples in a stream of another format would be a loud noise.
+- **It doesn't touch microphones.** For devices with inputs (USB headsets, audio interfaces) the IOProc declares that
+  it doesn't use input streams (`kAudioDevicePropertyIOProcStreamUsage`), so that recording is not started, and there is
+  no microphone indicator and no permission request. (It is not tested with real hardware yet: the Mac it was developed on
+  has no device with both inputs and outputs.)
 
-## 注意事项
+## Things to know
 
-- **耗电**：让设备保持工作本身是要耗电的，尤其是蓝牙耳机 / 音箱的电池，以及电池供电时的 MacBook 内置扬声器。
-  如果只关心某一个设备，建议在 *Outputs → Only Selected* 里只勾它：这样它断开后，Sound Keeper 不会转去给内置扬声器保活。
-- **AirPods 等会在设备间自动切换的耳机**：Mac 一直在“播放”，可能影响它自动切到 iPhone。给这类耳机保活前请想清楚是否需要。
-- **音量**：Fluctuate 的信号只有 1 个 LSB。如果设备的音量是在软件里做的（数字衰减）且不在 100%，它会被舍入成零，
-  效果退化为 Zero。数字输出一般没有这个问题。
-- **独占模式**：有播放器独占（Hog）设备时，Sound Keeper 会停下来等它释放 —— 此时保活本来就由那个播放器负责。
-- 噪声是按设备当前采样率直接生成的，在 96 kHz 及以上的设备上频谱会相应上移（原版固定按 48 kHz 生成）。
+- **Power.** A device that is kept working takes power. It matters for batteries of Bluetooth headphones and speakers,
+  and for the battery of a MacBook when its built-in speakers are kept awake. If you care about just one device,
+  check only it in *Outputs → Only Selected*: when it is disconnected, Sound Keeper won't start keeping built-in speakers awake instead.
+- **AirPods and other headphones that switch between devices on their own.** The Mac is always "playing",
+  which can get in the way of automatic switching to an iPhone. Think twice before keeping such headphones awake.
+- **Volume.** The signal of Fluctuate is just 1 LSB. If the volume of a device is applied in software and it is not at 100%,
+  the signal is rounded to zero, and Fluctuate works like Zero. Digital outputs usually don't have this problem.
+- **Exclusive use.** While a player uses a device exclusively (hog mode), Sound Keeper waits.
+  Keeping the device awake is the job of that player then.
+- **Noise** is generated at the current sample rate of the device, so its spectrum is shifted up on devices that run at 96 kHz and higher.
 
-## 文件位置
+## Files
 
-| 路径 | 内容 |
+| Path | What it is |
 | --- | --- |
-| `~/Library/Application Support/SoundKeeper/soundkeeper.lock` | 单实例锁 |
-| `~/Library/Application Support/SoundKeeper/status.json` | 运行中的实例的状态（供 `soundkeeper status` 读取） |
-| `~/Library/Application Support/SoundKeeper/soundkeeper` | `soundkeeper install` 时复制的可执行文件 |
-| `~/Library/LaunchAgents/local.soundkeeper.plist` | 登录项（App 的 *Start at Login* 与命令行的 `install` 共用，后设置的生效） |
-| `defaults read local.soundkeeper` | 菜单栏 App 的设置，保存的就是上面那套命令行参数 |
+| `~/Library/Application Support/SoundKeeper/soundkeeper.lock` | The single instance lock |
+| `~/Library/Application Support/SoundKeeper/status.json` | State of the running instance, for `soundkeeper status` |
+| `~/Library/Application Support/SoundKeeper/soundkeeper` | The copy of the executable that `soundkeeper install` makes |
+| `~/Library/LaunchAgents/local.soundkeeper.plist` | The login item. *Start at Login* of the app and `install` of the command line tool share it: the last one wins |
+| `defaults read local.soundkeeper` | Settings of the menu bar app. They are saved as the same command line arguments |
 
-## 排查问题
+## Troubleshooting
 
 ```sh
-build/soundkeeper status      # 谁在运行、在给谁保活、硬件此刻是否醒着
-build/soundkeeper list        # 所有输出设备：传输方式、格式、此刻是否醒着、当前设置是否会给它保活
-build/soundkeeper list all    # 换一组设置看看
-/usr/bin/log show --last 10m --predicate 'subsystem == "local.soundkeeper"'    # 事件日志
-pmset -g assertions | grep -i audio                                   # 谁在阻止睡眠
+build/soundkeeper status      # what is running, which outputs are kept awake, whether their hardware is awake right now
+build/soundkeeper list        # all outputs: transport, format, whether they are awake, whether the settings keep them awake
+build/soundkeeper list all    # the same for another set of settings
+/usr/bin/log show --last 10m --predicate 'subsystem == "local.soundkeeper"'    # the log of events
+pmset -g assertions | grep -i audio                                            # who keeps the Mac awake
 ```
 
-`list` 里的 AWAKE 一列读的是 `kAudioDevicePropertyDeviceIsRunningSomewhere`：Sound Keeper 运行时，被保活的设备应当始终是 `yes`。
+The AWAKE column of `list` is `kAudioDevicePropertyDeviceIsRunningSomewhere`. While Sound Keeper is running,
+it has to be `yes` for every output that is kept awake.
 
-## 代码结构
+## Source code
 
 ```
-Sources/CSoundKeeperRender   C：信号发生器（移植自原版的 Render）与 IOProc，运行在实时线程
-Sources/SoundKeeperCore      设置解析、设备枚举与选择、会话（SoundSession）、调度（SoundKeeper）、
-                             电源事件、单实例锁、登录项
-Sources/SoundKeeperUI        菜单栏 App：状态栏图标、菜单、参数面板
-Sources/SoundKeeperApp       App 入口
-Sources/soundkeeper          命令行工具
-Resources                    Info.plist、图标、本地化
-Tests                        信号发生器与原版逐采样对照、IOProc 的越界 / 格式保护、参数解析、设备选择、
-                             调度逻辑、菜单行为、本地化完整性；以及可选的真实硬件测试
+Sources/CSoundKeeperRender   C: the signal generator and the IOProc. It runs on the real-time thread
+Sources/SoundKeeperCore      Settings and their parser, devices and their selection, sessions (SoundSession),
+                             the keeper that runs them (SoundKeeper), power events, the single instance lock, the login item
+Sources/SoundKeeperUI        The menu bar app: the status bar icon, the menu, the panel with parameters
+Sources/SoundKeeperApp       The entry point of the app
+Sources/soundkeeper          The command line tool
+Resources                    Info.plist, the icon, localizations
+Tests                        The signal generator against a straightforward reference implementation, sample by sample;
+                             protection of the IOProc against unexpected buffers and formats; parsing of settings;
+                             selection of devices; the logic of the keeper; behavior of the menu; completeness of
+                             localizations; and optional tests with real hardware
 ```
 
-真实硬件测试默认不跑（它们是无声的，只使用空闲的内置扬声器）：
+Tests with real hardware are not run by default. They are silent and use only built-in speakers that are idle:
 
 ```sh
 SOUNDKEEPER_HARDWARE_TESTS=1 make test
-SOUNDKEEPER_HARDWARE_TESTS=1 swift test --sanitize=address --filter HardwareTests   # 仅有 Command Line Tools 时参考 Makefile 里的 TEST_FLAGS
+SOUNDKEEPER_HARDWARE_TESTS=1 swift test --sanitize=address --filter HardwareTests   # with Command Line Tools only, add TEST_FLAGS from the Makefile
 ```
 
-## 许可
+## License
 
-MIT，见 [LICENSE](LICENSE)。原版 Sound Keeper © 2014–2026 Evgeny Vrublevsky。
+MIT, see [LICENSE](LICENSE). Based on [Sound Keeper](https://github.com/vrubleg/soundkeeper) by Evgeny Vrublevsky.
