@@ -1,0 +1,3 @@
+import SoundKeeperUI
+
+SoundKeeperApplication.run()

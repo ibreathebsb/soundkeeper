@@ -1,0 +1,100 @@
+/* Sound Keeper for macOS: Simplified Chinese. Keys are the English texts. */
+
+"Sound Keeper" = "Sound Keeper";
+
+/* Status */
+"Sound Keeper is turned off" = "Sound Keeper 已关闭";
+"Paused: %@" = "已暂停：%@";
+"No output to keep awake" = "没有需要保活的输出设备";
+"Keeping Awake" = "正在保活";
+"%@ — waiting, in exclusive use" = "%@ — 等待中（被其他应用独占）";
+"%@ — can't start, retrying" = "%@ — 无法启动，正在重试";
+"%@ — stopped" = "%@ — 已停止";
+"system sleep" = "系统睡眠";
+"display is off" = "显示器已关闭";
+"screen is locked" = "屏幕已锁定";
+"user session is inactive" = "当前用户会话不在前台";
+"Sound Keeper: no output to keep awake" = "Sound Keeper：没有需要保活的输出设备";
+"Sound Keeper: some output can't be kept awake" = "Sound Keeper：部分输出设备无法保活";
+"Sound Keeper keeps awake: %@" = "Sound Keeper 正在保活：%@";
+
+/* Main menu */
+"Keep Outputs Awake" = "保持输出设备唤醒";
+"Turns Sound Keeper on and off." = "开启或关闭 Sound Keeper。";
+"Outputs" = "输出设备";
+"Signal" = "信号";
+"Sleep" = "休眠";
+"Start at Login" = "登录时启动";
+"About Sound Keeper" = "关于 Sound Keeper";
+"Quit Sound Keeper" = "退出 Sound Keeper";
+
+/* Outputs */
+"Default Output (%@)" = "默认输出（%@）";
+"Default Output" = "默认输出";
+"The output that is selected in Sound settings. It is followed when you switch outputs." = "“声音”设置中选定的输出设备。切换输出设备时会自动跟随。";
+"All Outputs" = "所有输出设备";
+"All hardware outputs. Virtual devices are skipped." = "所有硬件输出设备（跳过虚拟设备）。";
+"Digital Outputs" = "数字输出";
+"HDMI, DisplayPort and S/PDIF outputs." = "HDMI、DisplayPort 与 S/PDIF 输出。";
+"Analog Outputs" = "模拟输出";
+"All hardware outputs except HDMI, DisplayPort and S/PDIF." = "除 HDMI、DisplayPort 与 S/PDIF 之外的所有硬件输出。";
+"Outputs Marked with \"!\"" = "名称中带“!”的输出设备";
+"Only Selected" = "仅所选设备";
+"%@ (not connected)" = "%@（未连接）";
+"Include AirPlay Outputs" = "包含 AirPlay 输出";
+"AirPlay outputs are ignored by default: keeping them awake means streaming over the network all the time." = "默认忽略 AirPlay 输出：对它保活意味着一直通过网络推流。";
+
+/* Signal */
+"Open Only" = "仅打开设备";
+"Opens the output, but doesn't play anything. Sometimes it is enough." = "只打开输出设备，不播放任何内容。有时这样就够了。";
+"Zero" = "全零";
+"Plays a stream of zeroes. It may be not enough for some hardware." = "播放全零数据流。对某些硬件可能不够。";
+"Fluctuate" = "微扰";
+"Plays zeroes with the smallest non-zero samples now and then. It is inaudible. Used by default." = "播放全零数据流，并周期性插入幅度最小的非零采样。完全听不见。默认使用。";
+"Sine Wave" = "正弦波";
+"Plays a sine wave. A low frequency is inaudible, but it is a real signal for outputs that detect silence." = "播放正弦波。低频听不见，但对会检测静音的设备来说是真实信号。";
+"White Noise" = "白噪声";
+"Plays white noise. Use a low amplitude to make it inaudible." = "播放白噪声。把幅度调低即可听不见。";
+"Brown Noise" = "布朗噪声";
+"Plays brown noise. Use a low amplitude to make it inaudible." = "播放布朗噪声。把幅度调低即可听不见。";
+"Pink Noise" = "粉红噪声";
+"Plays pink noise. Use a low amplitude to make it inaudible." = "播放粉红噪声。把幅度调低即可听不见。";
+"Frequency: %@ Hz" = "频率：%@ Hz";
+"Frequency" = "频率";
+"%@ Hz" = "%@ Hz";
+"default" = "默认";
+"audible, for testing" = "可听见，用于测试";
+"Custom…" = "自定义…";
+"Amplitude: %@%%" = "幅度：%@%%";
+"Amplitude" = "幅度";
+"More Parameters…" = "更多参数…";
+"Length of the sound, pauses between sounds, and fading." = "声音时长、两段声音的间隔，以及淡入淡出。";
+"Reset to Defaults" = "恢复默认值";
+
+/* Sleep */
+"Keep the Mac Awake" = "保持 Mac 不睡眠";
+"By default the Mac is free to go to sleep while Sound Keeper is playing. Turn it on to keep the Mac awake, like a usual audio player does." = "默认情况下，Sound Keeper 播放时 Mac 仍可正常进入睡眠。开启后会像普通播放器一样阻止 Mac 睡眠。";
+"Pause While Displays Are Off" = "显示器关闭时暂停";
+"Pause While the Screen Is Locked" = "屏幕锁定时暂停";
+"Lets your speakers fall asleep when you are away." = "你离开时，让音箱自然进入休眠。";
+
+/* Parameters panel */
+"Signal Parameters" = "信号参数";
+"Parameters of the signal that keeps your outputs awake. Fields that don't apply to the current signal type are disabled." = "用于保活输出设备的信号参数。不适用于当前信号类型的字段已停用。";
+"Frequency:" = "频率：";
+"Amplitude:" = "幅度：";
+"Length:" = "时长：";
+"Waiting:" = "间隔：";
+"Fading:" = "淡入淡出：";
+"Hz" = "Hz";
+"Hz — fluctuations per second" = "Hz — 每秒微扰次数";
+"% — 0.1 is inaudible for a noise" = "% — 噪声设为 0.1 即听不见";
+"seconds — 0 is infinite" = "秒 — 0 表示一直播放";
+"seconds between sounds, if the length is set" = "秒 — 两段声音的间隔（需先设置时长）";
+"seconds" = "秒";
+"OK" = "好";
+"Cancel" = "取消";
+
+/* About */
+"Keeps audio outputs awake by always playing an inaudible stream." = "通过持续播放听不见的音频流，防止音频输出设备进入休眠。";
+"A macOS port of Sound Keeper for Windows by Evgeny Vrublevsky." = "移植自 Evgeny Vrublevsky 的 Windows 版 Sound Keeper。";
