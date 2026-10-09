@@ -1,0 +1,70 @@
+# Tests Sound Keeper and builds SoundKeeper.app and the command line tool.
+# The result can be downloaded from the page of a run (Artifacts).
+
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Test and build
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Show the toolchain
+        run: |
+          sw_vers
+          uname -m
+          xcodebuild -version
+          swift --version
+
+      - name: Test
+        run: make test
+
+      - name: Build the app and the command line tool
+        run: make app
+
+      - name: Check the products
+        timeout-minutes: 2
+        run: |
+          codesign --verify --strict --verbose=2 build/SoundKeeper.app
+          plutil -lint build/SoundKeeper.app/Contents/Info.plist
+          lipo -archs build/SoundKeeper.app/Contents/MacOS/SoundKeeper
+          lipo -archs build/soundkeeper
+          build/soundkeeper --version
+          build/soundkeeper list
+
+      # The app is zipped here, since artifacts don't keep permissions of files.
+      - name: Package
+        id: package
+        run: |
+          version="$(plutil -extract CFBundleShortVersionString raw Resources/Info.plist)"
+          name="SoundKeeper-$version-macos-$(uname -m)"
+          mkdir -p "dist/$name"
+          ditto build/SoundKeeper.app "dist/$name/SoundKeeper.app"
+          cp build/soundkeeper LICENSE README.md "dist/$name/"
+          # Without extended attributes: other unzip tools would turn them into "._" files that break the signature.
+          ditto -c -k --norsrc --noextattr --noacl --keepParent "dist/$name" "$name.zip"
+          echo "file=$name.zip" >> "$GITHUB_OUTPUT"
+
+      - name: Upload
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ steps.package.outputs.file }}
+          archive: false
+          if-no-files-found: error
