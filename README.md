@@ -12,7 +12,39 @@ from a fraction of a second to several seconds to wake up, so notification sound
 track is cut off, and some devices just power themselves off. Sound Keeper has a simple cure:
 **it always plays an inaudible stream to the device**, so the device believes that something is playing.
 
-## Build and install
+## Install
+
+Requires a Mac with Apple silicon and macOS 12 or later.
+
+1. Download `SoundKeeper-<version>-macos-arm64.zip` from the [latest release](https://github.com/ibreathebsb/soundkeeper/releases/latest) and unzip it.
+2. Move `SoundKeeper.app` to the Applications folder.
+3. Remove the quarantine attribute from the app. **macOS doesn't open the app without this step:**
+
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/SoundKeeper.app
+   ```
+
+4. Open the app. A speaker icon appears in the menu bar, and the default output is kept awake from now on.
+   Turn on *Start at Login* in its menu to have it always running.
+
+**Why step 3 is needed.** Every file that is downloaded by a browser gets the `com.apple.quarantine` attribute,
+and macOS opens a quarantined app only if it is notarized by Apple. This app is not: it has just an ad-hoc signature,
+since notarization requires a paid Apple Developer account. So macOS says that the app "is damaged and can't be opened"
+(or that it can't be verified) and offers to move it to the Trash. The app is not damaged. The command removes
+the attribute from the app and does nothing else: neither the app nor any setting of the system is changed.
+If System Settings → Privacy & Security offers *Open Anyway* for the app after the first attempt to open it, that works too.
+
+The zip also has the command line tool `soundkeeper` (see [Command line tool](#command-line-tool)). It is optional,
+and it is quarantined as well, so before the first use:
+
+```sh
+xattr -d com.apple.quarantine soundkeeper
+```
+
+To update, quit the app (*Quit Sound Keeper* in its menu) and replace it with the new version in the same way.
+To uninstall, turn off *Start at Login*, quit the app and delete it. Its other files are listed in [Files](#files).
+
+## Build from source
 
 Requires macOS 12 or later and Command Line Tools (`xcode-select --install`). Xcode is not needed.
 
@@ -20,24 +52,29 @@ Requires macOS 12 or later and Command Line Tools (`xcode-select --install`). Xc
 make app        # build/SoundKeeper.app (the menu bar app) and build/soundkeeper (the command line tool)
 make run        # build and start the app
 make install    # build, copy to /Applications and start it from there
+make package    # build and pack everything into dist/SoundKeeper-<version>-macos-<arch>.zip
 make test       # run the tests
 make uninstall  # remove the app, its login item and all its files
 ```
 
-The app is built on your Mac for your Mac. It has an ad-hoc signature, and Gatekeeper doesn't block it.
+An app that is built on your Mac is not quarantined, so there is nothing to remove: it just runs.
 
 ### GitHub Actions
 
-`.github/workflows/build.yml` tests and builds the project on a macOS runner of GitHub on every push to `main`,
-on every pull request, and when it is started manually. The result is a zip with `SoundKeeper.app` and the command line
-tool. Download it from Artifacts at the bottom of the page of a run.
+Two workflows run on macOS runners of GitHub:
 
-An app built by CI has an ad-hoc signature too, and files downloaded by a browser are quarantined.
-Remove the quarantine before the first start:
+- `.github/workflows/build.yml` tests and builds the project on every push to `main`, on every pull request, and when
+  it is started manually. The zip with `SoundKeeper.app` and the command line tool can be downloaded from Artifacts
+  at the bottom of the page of a run.
+- `.github/workflows/release.yml` does the same when a version tag is pushed, and publishes the zip as a release:
 
-```sh
-xattr -dr com.apple.quarantine SoundKeeper.app
-```
+  ```sh
+  git tag v1.2.3 && git push origin v1.2.3
+  ```
+
+  The tag has to match the version of the app, which is set in `Resources/Info.plist` and `Sources/SoundKeeperCore/AppInfo.swift`.
+
+Everything that is downloaded from GitHub is quarantined, see [Install](#install).
 
 ## The menu bar app
 

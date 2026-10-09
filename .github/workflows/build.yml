@@ -1,5 +1,7 @@
 # Tests Sound Keeper and builds SoundKeeper.app and the command line tool.
 # The result can be downloaded from the page of a run (Artifacts).
+#
+# Releases are made by release.yml when a version tag is pushed.
 
 name: Build
 
@@ -52,15 +54,7 @@ jobs:
       # The app is zipped here, since artifacts don't keep permissions of files.
       - name: Package
         id: package
-        run: |
-          version="$(plutil -extract CFBundleShortVersionString raw Resources/Info.plist)"
-          name="SoundKeeper-$version-macos-$(uname -m)"
-          mkdir -p "dist/$name"
-          ditto build/SoundKeeper.app "dist/$name/SoundKeeper.app"
-          cp build/soundkeeper LICENSE README.md README.zh-CN.md "dist/$name/"
-          # Without extended attributes: other unzip tools would turn them into "._" files that break the signature.
-          ditto -c -k --norsrc --noextattr --noacl --keepParent "dist/$name" "$name.zip"
-          echo "file=$name.zip" >> "$GITHUB_OUTPUT"
+        run: echo "file=$(./scripts/package.sh)" >> "$GITHUB_OUTPUT"
 
       - name: Upload
         uses: actions/upload-artifact@v7

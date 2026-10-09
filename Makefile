@@ -8,7 +8,7 @@ ifneq ($(wildcard $(TESTING_PLUGINS)),)
 TEST_FLAGS := -Xswiftc -plugin-path -Xswiftc $(TESTING_PLUGINS)
 endif
 
-.PHONY: app run install uninstall test icon clean
+.PHONY: app run install uninstall package test icon clean
 
 # build/SoundKeeper.app (the menu bar app) and build/soundkeeper (the command line tool).
 app:
@@ -34,6 +34,10 @@ uninstall:
 	-defaults delete local.soundkeeper >/dev/null 2>&1
 	@echo "Sound Keeper is removed."
 
+# dist/SoundKeeper-<version>-macos-<arch>.zip: the app and the command line tool, ready to be given to someone.
+package: app
+	./scripts/package.sh
+
 test:
 	swift test $(TEST_FLAGS)
 
@@ -42,4 +46,4 @@ icon:
 	swift scripts/make-icon.swift Resources/AppIcon.icns
 
 clean:
-	rm -rf .build build
+	rm -rf .build build dist

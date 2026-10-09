@@ -10,7 +10,37 @@
 于是提示音被吞掉、每首歌的开头被切掉，有的设备干脆自动关机。Sound Keeper 的办法很简单：
 **一直向设备播放一路听不见的音频流**，让它始终认为“正在播放”。
 
-## 构建与安装
+## 安装
+
+需要 Apple 芯片的 Mac，以及 macOS 12 或更新版本。
+
+1. 从[最新的 Release](https://github.com/ibreathebsb/soundkeeper/releases/latest) 下载 `SoundKeeper-<版本>-macos-arm64.zip` 并解压。
+2. 把 `SoundKeeper.app` 拖进“应用程序”文件夹。
+3. 去掉 App 的隔离属性。**不做这一步，macOS 不会让它打开：**
+
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/SoundKeeper.app
+   ```
+
+4. 打开 App。菜单栏里会出现一个喇叭图标，从这时起默认输出设备就被保活了。
+   想让它一直运行，请在它的菜单里勾选 *Start at Login*。
+
+**为什么需要第 3 步。** 浏览器下载的每个文件都会被打上 `com.apple.quarantine` 属性，
+而 macOS 只允许打开经过 Apple 公证的隔离 App。这个 App 没有公证：它只有 ad-hoc 签名，因为公证需要付费的 Apple 开发者账号。
+所以 macOS 会提示 App“已损坏，无法打开”（或者无法验证），并建议把它移到废纸篓。App 并没有损坏。
+这条命令只是把这个属性从 App 上去掉，别的什么都不做：既不改动 App，也不改动任何系统设置。
+如果第一次尝试打开之后，“系统设置 → 隐私与安全性”里出现了针对它的“仍要打开”，用那个按钮也可以。
+
+zip 里还有命令行工具 `soundkeeper`（见[命令行工具](#命令行工具)）。它是可选的，同样带有隔离属性，所以首次使用前：
+
+```sh
+xattr -d com.apple.quarantine soundkeeper
+```
+
+更新时，先退出 App（菜单里的 *Quit Sound Keeper*），再用同样的方法换成新版本。
+卸载时，取消勾选 *Start at Login*，退出并删除 App。它的其他文件见[文件位置](#文件位置)。
+
+## 从源码构建
 
 需要 macOS 12 或更新版本，以及 Command Line Tools（`xcode-select --install`）。不需要 Xcode。
 
@@ -18,22 +48,28 @@
 make app        # 生成 build/SoundKeeper.app（菜单栏 App）和 build/soundkeeper（命令行工具）
 make run        # 构建并启动 App
 make install    # 构建、复制到 /Applications 并从那里启动
+make package    # 构建并打包成 dist/SoundKeeper-<版本>-macos-<架构>.zip
 make test       # 运行测试
 make uninstall  # 删除 App、登录项和它的全部文件
 ```
 
-App 是在本机构建、仅作本机使用的，采用 ad-hoc 签名，不会被 Gatekeeper 拦截。
+在自己的 Mac 上构建出来的 App 不带隔离属性，所以不需要去掉什么，直接就能运行。
 
 ### GitHub Actions
 
-`.github/workflows/build.yml` 会在每次推送到 `main`、每个 Pull Request 以及手动触发时，在 GitHub 的 macOS 运行器上跑测试并构建。
-产物是一个 zip（`SoundKeeper.app` + 命令行工具），在那次运行页面底部的 Artifacts 里下载。
+有两个工作流运行在 GitHub 的 macOS 运行器上：
 
-CI 构建的 App 同样只有 ad-hoc 签名，而从浏览器下载的文件带有隔离标记，所以首次运行前需要去掉它：
+- `.github/workflows/build.yml` 在每次推送到 `main`、每个 Pull Request 以及手动触发时测试并构建项目。
+  包含 `SoundKeeper.app` 和命令行工具的 zip 可以在那次运行页面底部的 Artifacts 里下载。
+- `.github/workflows/release.yml` 在推送版本标签时做同样的事情，并把 zip 发布为一个 Release：
 
-```sh
-xattr -dr com.apple.quarantine SoundKeeper.app
-```
+  ```sh
+  git tag v1.2.3 && git push origin v1.2.3
+  ```
+
+  标签必须和 App 的版本一致，版本写在 `Resources/Info.plist` 和 `Sources/SoundKeeperCore/AppInfo.swift` 里。
+
+从 GitHub 下载的所有东西都带有隔离属性，见[安装](#安装)。
 
 ## 菜单栏 App
 

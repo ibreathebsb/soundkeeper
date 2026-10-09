@@ -1,0 +1,86 @@
+# Publishes a release when a version tag is pushed:
+#
+#     git tag v1.2.3 && git push origin v1.2.3
+#
+# The tag has to match the version of the app (Resources/Info.plist and AppInfo.swift).
+# The release gets the same zip that the Build workflow makes: SoundKeeper.app and the command line tool.
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Test, build and publish
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+
+      - name: Check that the tag matches the version of the app
+        run: |
+          version="$(plutil -extract CFBundleShortVersionString raw Resources/Info.plist)"
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::The tag is $GITHUB_REF_NAME, but the version in Resources/Info.plist is $version."
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Show the toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: Test
+        run: make test
+
+      - name: Build the app and the command line tool
+        run: make app
+
+      - name: Check the products
+        timeout-minutes: 2
+        run: |
+          codesign --verify --strict --verbose=2 build/SoundKeeper.app
+          lipo -archs build/SoundKeeper.app/Contents/MacOS/SoundKeeper
+          build/soundkeeper --version
+
+      - name: Package
+        id: package
+        run: echo "file=$(./scripts/package.sh)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FILE: ${{ steps.package.outputs.file }}
+        run: |
+          cat > notes.md <<NOTES
+          ## Install
+
+          Requires a Mac with Apple silicon and macOS 12 or later.
+
+          1. Download \`$(basename "$FILE")\` below and unzip it.
+          2. Move \`SoundKeeper.app\` to the Applications folder.
+          3. Remove the quarantine attribute, otherwise macOS refuses to open the app (it is not notarized by Apple):
+
+             \`\`\`sh
+             xattr -dr com.apple.quarantine /Applications/SoundKeeper.app
+             \`\`\`
+
+          4. Open the app. A speaker icon appears in the menu bar.
+
+          See the [README](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/README.md) ([简体中文](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/README.zh-CN.md)) for details.
+
+          NOTES
+          gh release create "$GITHUB_REF_NAME" "$FILE" \
+            --verify-tag \
+            --title "Sound Keeper $VERSION" \
+            --notes-file notes.md \
+            --generate-notes
